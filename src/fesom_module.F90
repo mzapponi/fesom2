@@ -293,7 +293,7 @@ contains
   subroutine fesom_runloop(current_nsteps)
     use fesom_main_storage_module
     integer, intent(in) :: current_nsteps
-    real(kind=WP)                            :: hSv, fw0
+    real(kind=WP)                            :: hSv, fw0, A, B, K, Q, v, t
     integer                                  ::nstep
     ! EO parameters
     integer n
@@ -377,6 +377,16 @@ contains
             !
             !constant flux
             !hSv = 10
+            !
+            !ssp585 scenario hosing
+            !A = 5.18e2_WP
+            !K = 3.41e3_WP
+            !B = 0.21_WP
+            !v = 3.85e-5_WP
+            !Q = 1.48e1_WP
+            !t = yearnew-2015
+            !hSv = (1._WP/0.55_WP) * (A + (K - A) / ((1._WP + Q * exp(-B * t))**(1 / v)))
+            !hSv = hSv / 3.154e4_WP !Gt/yr to Sv
             !
             !call fw_depth_anomaly(f%tracers%data(2)%values, f%tracers%data(1)%values,  hSv, f%partit, f%mesh)
         end if

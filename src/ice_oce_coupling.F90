@@ -290,7 +290,7 @@ subroutine oce_fluxes(ice, dynamics, tracers, partit, mesh, total_nsteps, nstep)
     integer       , intent(in)            :: nstep
     !___________________________________________________________________________
     integer                    :: n, elem, elnodes(3),n1
-    real(kind=WP)              :: rsss, net, hSv, fw0
+    real(kind=WP)              :: rsss, net, hSv, fw0, A, B, K, Q, v, t
     real(kind=WP), allocatable :: flux(:)
     !___________________________________________________________________________
     real(kind=WP), dimension(:,:), pointer :: temp, salt
@@ -370,17 +370,27 @@ subroutine oce_fluxes(ice, dynamics, tracers, partit, mesh, total_nsteps, nstep)
     !___freshwater hosing routine_______________________________________________
     !
     !1992-2020 hosing experiment increasing 1.1*10^-3 Sv/yr
-    if (yearnew<1992) then
-        fw0 = 0.0
-        hSv = 0.0 
-    else
-        fw0 = 0.0011*(yearnew-1992)
-        hSv = fw0 + (0.0011/total_nsteps)*nstep
-    endif
+    !if (yearnew<1992) then
+    !    fw0 = 0.0
+    !    hSv = 0.0 
+    !else
+    !    fw0 = 0.0011*(yearnew-1992)
+    !    hSv = fw0 + (0.0011/total_nsteps)*nstep
+    !end if
     !
     !constant flux
     !hSv=0.1
     !
+    !ssp585 scenario hosing
+    A = 5.18e2_WP
+    K = 3.41e3_WP
+    B = 0.21_WP
+    v = 3.85e-5_WP
+    Q = 1.48e1_WP
+    t = yearnew-2015
+    hSv = (1._WP/0.55_WP) * (A + (K - A) / ((1._WP + Q * exp(-B * t))**(1 / v)))
+    hSv = hSv / 3.154e4_WP !Gt/yr to Sv
+    
     call fw_surf_anomaly(hSv, tracers, partit, mesh)
 
     !___________________________________________________________________________
@@ -621,6 +631,7 @@ subroutine fw_surf_anomaly(hSv, tracers, partit, mesh)
     use g_comm_auto
     use g_support
     implicit none
+
     type(t_partit), intent(inout), target  :: partit
     type(t_mesh),   intent(in),    target  :: mesh
     type(t_tracer), intent(in),    target  :: tracers
@@ -628,6 +639,8 @@ subroutine fw_surf_anomaly(hSv, tracers, partit, mesh)
     real(kind=WP)                          :: x, y, net
     integer                                :: n, ed(2)
     real(kind=WP), dimension(:,:), pointer :: temp
+    real(kind=WP), parameter               :: lhf = 334000. !Latent heat of fusion for sea ice (J/Kg)
+    real(kind=WP), parameter               :: rhofwt = 1000. !Fresh water density (Kg/m3)
 #include "associate_part_def.h"
 #include "associate_mesh_def.h"
 #include "associate_part_ass.h"
@@ -651,10 +664,10 @@ subroutine fw_surf_anomaly(hSv, tracers, partit, mesh)
         if (y<-60._WP) hosing_flux(ed)=1._WP
      end do
 
-     !call smooth_nod (hosing_flux, 8, partit, mesh)
-     !do n=1,myDim_nod2d+eDim_nod2D
-     !   if (hosing_flux(n)>0.0_WP) hosing_flux(n)=1.0_WP
-     !end do
+     call smooth_nod (hosing_flux, 8, partit, mesh)
+     do n=1,myDim_nod2d+eDim_nod2D
+        if (hosing_flux(n)>0.0_WP) hosing_flux(n)=1.0_WP
+     end do
 
      call integrate_nod(hosing_flux, net, partit, mesh)
 
@@ -662,11 +675,25 @@ subroutine fw_surf_anomaly(hSv, tracers, partit, mesh)
         hosing_flux=hosing_flux/net*hSv*1.e6 ! hSv*1.e6 in m/s
      end if
      water_flux=water_flux-hosing_flux
-
-     hosing_heat_flux=(temp(1,:)+1.8)*hosing_flux*vcpw !(tf - temp(1,:)) with tf=-1.8 
-     !write(*,*) mype, 'heat_flux=', heat_flux, 'temp=', temp(1,:)
-     heat_flux=heat_flux+hosing_heat_flux
-     !write(*,*) mype, 'hosing_heat_flux=', hosing_heat_flux, 'heat_flux=', heat_flux
+     
+     !Computing the heat used to melt the ice corresponding to the freshwater flux
+     
+     !mass_wat = hosing_flux*rhofwt !mass flux of fresh water (Kg/m2*s) 
+     !the heat flux is in W/m2 so no multiplication for the node area is needed 
+     
+     !mass_ice = hosing_flux_ice*rhoice =  hosing_flux*rhofwt !mass of melted ice (Kg/m2*s)
+     ! in therms of mass they are equal
+     !hosing_latent_heat_flux = mass_ice*Lf !(J/m2*s=W/m2) 
+     
+     !to remove latent heat of fusion
+     hosing_heat_flux = hosing_flux*rhofwt*lhf !(W/m2) !!!!!!! this is the one to uncomment for hosinexp_latentheat
+     
+     !computing the heat flux change due to the freshwater temperature (by default it is assumed equal to surrounding temperature)  
+     !hosing_heat_flux=(temp(1,:)+1.8)*hosing_flux*vcpw !(temp(1,:)-tf) with tf=-1.8 (temp>-1.8 almost always, so hosing_heat_flux>0,
+     !which means that since we are adding super cool freshwater we have a heat flux going out of the ocean, i.e. positive)   
+     
+     heat_flux=heat_flux+hosing_heat_flux !(W/m2) heat flux is negative going in the ocean and the hosing heat flux goes out of the
+     !ocean so it must be added and not subtracted from it !!!!!! uncomment for hosinexp_latentheat 
 !write(*,*) mype, 'hSv=', hSv, 'net=', net, 'hf=', minval(hosing_flux, 1), maxval(hosing_flux, 1)
 
 end subroutine fw_surf_anomaly
@@ -685,7 +712,7 @@ subroutine fw_depth_anomaly(tts, ttt, hSv, partit, mesh)
     use g_config,         only: dt
     implicit none
 
-    integer                               :: n, ed(2), row, k, nz, nzmin, nzmax, elem1, elem2
+    integer                               :: n, ed(2), row, k, nz, nlev1, nlev2, nzmin, nzmax, elem1, elem2
     real(kind=WP)                         :: x, y, net, spar(100)
     real(kind=WP),  intent(in)            :: hSv
     type(t_mesh),   intent(in),    target :: mesh
@@ -693,12 +720,16 @@ subroutine fw_depth_anomaly(tts, ttt, hSv, partit, mesh)
     real(kind=WP),  intent (inout)        :: tts(mesh%nl-1,partit%myDim_nod2D+partit%eDim_nod2D)
     real(kind=WP),  intent (inout)        :: ttt(mesh%nl-1,partit%myDim_nod2D+partit%eDim_nod2D)
     real(kind=WP), save, allocatable      :: mask(:), mask3D(:,:)
+    real(kind=WP), parameter              :: lhf = 334000. !Latent heat of fusion for sea ice (J/Kg)
+    real(kind=WP), parameter              :: rhofwt = 1000. !Fresh water density (Kg/m3)
     logical, save                         :: lfirst=.true.
 #include "associate_part_def.h"
 #include "associate_mesh_def.h"
 #include "associate_part_ass.h"
 #include "associate_mesh_ass.h"
     hosing_flux3D=0._WP
+    hosing_heat_flux3D=0._WP
+
     if (lfirst) then
        allocate(mask(myDim_nod2D+eDim_nod2D), mask3D(mesh%nl-1, myDim_nod2D+eDim_nod2D))
        mask =0._WP
@@ -722,17 +753,36 @@ subroutine fw_depth_anomaly(tts, ttt, hSv, partit, mesh)
           if (any(mask(ed)<1.e-12)) cycle
           elem1 = mesh%edge_tri(1, n)
           elem2 = mesh%edge_tri(2, n)
-          if (elem2<=0) then
-             nzmin=1
-             nzmax=mesh%nlevels(elem1)-1
-          else
-             nzmin = min(mesh%nlevels(elem1), mesh%nlevels(elem2))-1 !!remove -1 depending on what is desired
-             nzmax = max(mesh%nlevels(elem1), mesh%nlevels(elem2))-1
-          end if
-          if (nzmax<nzmin) nzmax=nzmin
-          nzmin=max(16, nzmin) !circa 200m
-          nzmax=min(19, nzmax) !circa 400m
-          mask3D(nzmin:nzmax, ed)=1._WP
+          
+          nlev1 = mesh%nlevels(elem1)
+          nlev2 = 1
+          if (elem2 > 0) nlev2 = mesh%nlevels(elem2)
+          nzmin = 16
+          nzmax = 19
+          ! Apply mask only to levels that exist in at least one of the two elements
+          do k = nzmin, nzmax
+             if (k < nlev1 .or. k < nlev2) then
+             mask3D(k, ed) = 1.0_WP
+             end if
+          end do
+          
+          !if (elem2<=0) then
+          !   nzmin=1
+          !   nzmax=mesh%nlevels(elem1)-1
+          !else
+          !   nzmin = min(mesh%nlevels(elem1), mesh%nlevels(elem2))-1 !!remove -1 depending on what is desired
+          !   nzmax = max(mesh%nlevels(elem1), mesh%nlevels(elem2))-1
+          !end if
+          !if (nzmax<nzmin) nzmax=nzmin
+          !nzmin=max(16, nzmin) !circa 200m
+          !nzmax=min(19, nzmax) !circa 400m
+          !!if (nzmax<nzmin) then
+          !!        nzmin=16
+          !!        nzmax=19
+          !!end if 
+          !!nzmin=16
+          !!nzmax=19
+          !mask3D(nzmin:nzmax, ed)=1._WP
        end do
        
 !      mask=0.0_WP
@@ -769,21 +819,16 @@ subroutine fw_depth_anomaly(tts, ttt, hSv, partit, mesh)
     !call integrate_nod(mask, net, partit, mesh)
     !write(*,*) 'integrated mask2D=', net
     end if
-    tts=tts-mask3D*hSv*tts     
-    ttt=ttt-mask3D*hSv*(ttt+1.8)
-    call integrate_nod(tts, net, partit, mesh)
-    write(*,*) 'integrated salinity=', net
-    call integrate_nod(ttt, net, partit, mesh)
-    write(*,*) 'integrated temperature=', net
+    tts=tts-mask3D*hSv*tts
+    !hosing_heat_flux3D = mask3D*hsv*rhofwt*lhf    
+    !ttt = ttt-hosing_heat_flux3D/vcpw !temperature modification to remove latent heat of fusion
+    !!!!ttt=ttt-mask3D*hSv*(ttt+1.8) !temperature modification to have meltwaterwater added at -1.8 deg.
+    !call integrate_nod(tts, net, partit, mesh)
+    !write(*,*) 'integrated salinity=', net
+    !call integrate_nod(ttt, net, partit, mesh)
+    !write(*,*) 'integrated temperature=', net
 
-    hosing_flux3D=hosing_flux3D+mask3D*hSv
-
-!    do row=1,myDim_nod2d+eDim_nod2D
-!       do k=1, mesh%nl-1
-!          if (mask3(k, row)<1.e-12) CYCLE
-!          ttf(k,row)=ttf(k,row)-mask3(k,row)*hSv*ttf(1, row)
-!       end do
-!    end do
+    hosing_flux3D=mask3D*hSv
 
 !___ original routine___
 !    hosing_flux=0._WP
