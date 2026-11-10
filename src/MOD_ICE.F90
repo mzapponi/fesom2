@@ -128,6 +128,7 @@ END TYPE T_ICE_ATMCOUPL
 ! 
 !_______________________________________________________________________________
 ! set main ice derived type contains parameters, data array, work array, u_ice, vice
+real(kind=WP),    allocatable, dimension(:) :: mrt_ice
 TYPE T_ICE
 
     !___________________________________________________________________________
@@ -160,7 +161,6 @@ TYPE T_ICE
 
     ! put ice tracers data arrays
     type(t_ice_data), allocatable, dimension(:) :: data
-    
     !___________________________________________________________________________
     ! put ice working arrays
     type(t_ice_work)                            :: work
@@ -696,7 +696,8 @@ subroutine ice_init(ice, partit, mesh)
         ice%data(n)%valuesl        = 0.0_WP
         if (n==4) ice%data(n)%values = 265.15_WP
     end do
-    
+    allocate(mrt_ice(node_size))
+    mrt_ice = 0.0_WP
     !___________________________________________________________________________
     ! initialse work array of ice derived type 
     allocate(ice%work%fct_tmax(        node_size))

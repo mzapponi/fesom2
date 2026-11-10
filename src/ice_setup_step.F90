@@ -123,7 +123,7 @@ subroutine ice_timestep(step, ice, partit, mesh)
     ! pointer on necessary derived types
     real(kind=WP), dimension(:), pointer  :: u_ice, v_ice
 #if defined (__oifs) || defined (__ifsinterface)
-    real(kind=WP), dimension(:), pointer  :: ice_temp, a_ice
+    real(kind=WP), dimension(:), pointer  :: ice_temp, a_ice, m_ice
 #endif     
 #include "associate_part_def.h"
 #include "associate_mesh_def.h"
@@ -133,8 +133,11 @@ subroutine ice_timestep(step, ice, partit, mesh)
     v_ice    => ice%vice(:)
 #if defined (__oifs) || defined (__ifsinterface)
     a_ice    => ice%data(1)%values(:)
+    m_ice    => ice%data(2)%values(:)
     ice_temp => ice%data(4)%values(:)
-#endif     
+#endif
+    mrt_ice=0._WP ! actual sea ice thickness 
+    mrt_ice=m_ice/(a_ice+1e-3)
     !___________________________________________________________________________
     t0=MPI_Wtime()
 #if defined (__icepack)

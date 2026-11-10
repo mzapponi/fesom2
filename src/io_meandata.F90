@@ -195,35 +195,39 @@ CASE ('dhe        ')
 ! output sea ice 
 CASE ('uice      ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'uice',     'ice velocity x',                 'm/s',    ice%uice(:),                     io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'uice',     'ice velocity x',                 'm/s',    ice%uice(:),                          io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('vice      ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'vice',     'ice velocity y',                 'm/s',    ice%vice(:),                     io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'vice',     'ice velocity y',                 'm/s',    ice%vice(:),                          io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('a_ice     ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'a_ice',    'ice concentration',              '%',      ice%data(1)%values(1:myDim_nod2D),      io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'a_ice',    'ice concentration',              '%',      ice%data(1)%values(1:myDim_nod2D),    io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('m_ice     ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'm_ice',    'ice height',                     'm',      ice%data(2)%values(1:myDim_nod2D),      io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'm_ice',    'ice height',                     'm',      ice%data(2)%values(1:myDim_nod2D),    io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    end if
+CASE ('mrt_ice     ')
+    if (use_ice) then
+    call def_stream(nod2D, myDim_nod2D, 'mrt_ice',    'real ice thickness',           'm',      mrt_ice,                              io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('thdgr     ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'thdgr',    'thermodynamic growth rate ice',    'm/s',    ice%thermo%thdgr(1:myDim_nod2D),      io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'thdgr',    'thermodynamic growth rate ice',  'm/s',    ice%thermo%thdgr(1:myDim_nod2D),      io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('thdgrsn   ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'thdgrsn',  'thermodynamic growth rate snow',   'm/s',    ice%thermo%thdgrsn(1:myDim_nod2D),    io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'thdgrsn',  'thermodynamic growth rate snow', 'm/s',    ice%thermo%thdgrsn(1:myDim_nod2D),    io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('flice     ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D,  'flice',    'flooding growth rate ice',       'm/s',    flice(:),                  io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D,  'flice',    'flooding growth rate ice',       'm/s',    flice(:),                            io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 CASE ('m_snow    ')
     if (use_ice) then
-    call def_stream(nod2D, myDim_nod2D, 'm_snow',   'snow height',                     'm',      ice%data(3)%values(1:myDim_nod2D),     io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'm_snow',   'snow height',                     'm',      ice%data(3)%values(1:myDim_nod2D),   io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
     end if
 
 ! Debug ice variables    
@@ -312,13 +316,13 @@ CASE ('MLD3      ')
 !_______________________________________________________________________________
 ! output surface forcing
 CASE ('fh        ')
-    call def_stream(nod2D, myDim_nod2D, 'fh',       'heat flux',                       'W',      heat_flux_in(:),           io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+    call def_stream(nod2D, myDim_nod2D, 'fh',       'heat flux',                       'W/m2',   heat_flux_in(:),           io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('fw        ')
     call def_stream(nod2D, myDim_nod2D, 'fw',       'fresh water flux',                'm/s',    water_flux(:),             io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('hfw       ')
 call def_stream(nod2D, myDim_nod2D,     'hfw',      'hosing water flux',               'm/s',    hosing_flux(:),            io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('hfh       ')
-call def_stream(nod2D, myDim_nod2D,     'hfh',      'hosing heat flux',                'W',      hosing_heat_flux(:),       io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+call def_stream(nod2D, myDim_nod2D,     'hfh',      'hosing heat flux',                'W/m2',   hosing_heat_flux(:),       io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('atmice_x  ')
     call def_stream(nod2D, myDim_nod2D, 'atmice_x', 'stress atmice x',                 'N/m2',   ice%stress_atmice_x(:),    io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('atmice_y  ')
@@ -411,8 +415,10 @@ CASE ('temp      ')
     call def_stream((/nl-1, nod2D/),  (/nl-1, myDim_nod2D/),  'temp',      'temperature', 'C',      tracers%data(1)%values(:,:),             io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('salt      ')
     call def_stream((/nl-1, nod2D/),  (/nl-1, myDim_nod2D/),  'salt',      'salinity',    'psu',    tracers%data(2)%values(:,:),             io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
-CASE ('hfw3D      ')
-    call def_stream((/nl-1, nod2D/),  (/nl-1, myDim_nod2D/),  'hfw3D',       'hosing water flux in 3D', 'm/s',      hosing_flux3D(:,:),                io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+CASE ('hfw3D     ')
+    call def_stream((/nl-1, nod2D/),  (/nl-1, myDim_nod2D/),  'hfw3D',     'hosing water flux in 3D', 'm/s',    hosing_flux3D(:,:),          io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
+CASE ('hfh3D     ')
+    call def_stream((/nl-1, nod2D/),  (/nl-1, myDim_nod2D/),  'hfh3D',     'hosing heat flux in 3D', 'm/s',     hosing_heat_flux3D(:,:),     io_list(i)%freq, io_list(i)%unit, io_list(i)%precision, partit, mesh)
 CASE ('otracers  ')
     do j=3, tracers%num_tracers
     write (id_string, "(I3.3)") tracers%data(j)%ID
