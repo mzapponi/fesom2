@@ -395,7 +395,7 @@ subroutine diff_ver_part_expl_ale(tr_num, tracers, partit, mesh)
             rdata =  Tsurf(n)
             rlx   =  surf_relax_T
         elseif (tracers%data(tr_num)%ID==2) then
-            flux  =  virtual_salt(n)+relax_salt(n)- real_salt_flux(n)*is_nonlinfs
+            flux  =  virtual_salt(n)+relax_salt(n)+ real_salt_flux(n)*is_nonlinfs
         else
             flux  = 0._WP
             rdata = 0._WP
@@ -834,14 +834,15 @@ subroutine diff_ver_part_impl_ale(tr_num, dynamics, tracers, partit, mesh)
         !                            v   (+)                        v   (+) 
         !                            
         
-        if (tracers%data(tr_num)%ID==304) then
-            do nz=nzmin,nzmax
-                tr(nz)= tr(nz)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nz,n), nz, partit)
-            end do
-        else 
-            tr(nzmin)= tr(nzmin)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nzmin,n), nzmin, partit)
-        end if
-        !tr(nzmin)= tr(nzmin)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nzmin,n), nzmin, partit)   
+        !for depth freshwater exp
+        !if (tracers%data(tr_num)%ID==304) then
+        !    do nz=nzmin,nzmax
+        !        tr(nz)= tr(nz)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nz,n), nz, partit)
+        !    end do
+        !else 
+        !    tr(nzmin)= tr(nzmin)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nzmin,n), nzmin, partit)
+        !end if
+        tr(nzmin)= tr(nzmin)+bc_surface(n, tracers%data(tr_num)%ID, trarr(nzmin,n), nzmin, partit) !for surface freshwater exp   
         !_______________________________________________________________________
         ! The forward sweep algorithm to solve the three-diagonal matrix 
         ! problem
@@ -1308,7 +1309,7 @@ FUNCTION bc_surface(n, id, sval, nzmin, partit)
         ! --> real_salt_flux(:): salt flux due to containment/releasing of salt
         !     by forming/melting of sea ice
         bc_surface= dt*(virtual_salt(n) & !--> is zeros for zlevel/zstar
-                    + relax_salt(n) - real_salt_flux(n)*is_nonlinfs)
+                    + relax_salt(n) + real_salt_flux(n)*is_nonlinfs)
     CASE (101) ! apply boundary conditions to tracer ID=101
         bc_surface= dt*(prec_rain(n))! - real_salt_flux(n)*is_nonlinfs)
     CASE (301)
@@ -1318,8 +1319,8 @@ FUNCTION bc_surface(n, id, sval, nzmin, partit)
     CASE (303)
         bc_surface=0.0_WP
     CASE (304)
-        bc_surface= dt*(hosing_flux3D(nzmin,n))
-        !bc_surface= dt*(hosing_flux(n))
+        !bc_surface= dt*(hosing_flux3D(nzmin,n)) !for depth freshwater exp
+        bc_surface= dt*(hosing_flux(n)) !for surf freshwater exp
     CASE (501) ! ice-shelf water due to basal melting
         if (nzmin==1) then
            bc_surface = 0.0_WP
